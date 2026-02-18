@@ -1,0 +1,182 @@
+<div id="gx-live-viewers"
+     class="gx-size-md"
+     aria-live="polite"
+     aria-atomic="true"
+     data-interval="4000"       
+     data-variant="inline"      
+     data-max-count="6"          
+     data-weighted="true">       
+  <span class="gx-dot" aria-hidden="true"></span>
+  <span class="gx-text">
+    <span class="gx-count">3</span>
+    <span class="gx-people">personas</span>
+    viendo desde
+    <span class="gx-city">Guadalajara</span>
+  </span>
+</div>
+
+<style>
+  /* ============ Base GAX Style ============ */
+  #gx-live-viewers {
+    /* Paleta GAX/ALIV */
+    --gx-text-main: #1F2937;
+    --gx-dot-color: #00BFA5; /* Teal vibrante para indicar "Activo" */
+    --gx-dot-glow:  rgba(0, 191, 165, 0.45);
+    --gx-brand-grad: linear-gradient(135deg, #1B5E20 0%, #00BFA5 100%);
+    
+    --gx-fade: 420ms;
+    --gx-gap: 10px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: var(--gx-gap);
+    color: var(--gx-text-main);
+    font-family: var(--font-body-family), system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 1.2;
+    letter-spacing: 0.2px;
+    user-select: none;
+  }
+
+  /* Tamaños */
+  #gx-live-viewers.gx-size-sm { font-size: 13px; --gx-gap: 8px; }
+  #gx-live-viewers.gx-size-md { font-size: 15px; }
+  #gx-live-viewers.gx-size-lg { font-size: 17px; --gx-gap: 12px; }
+
+  /* Punto pulsante (Teal Pulse) */
+  #gx-live-viewers .gx-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--gx-dot-color);
+    box-shadow: 0 0 0 0 var(--gx-dot-glow);
+    animation: gx-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    flex: 0 0 auto;
+  }
+
+  @keyframes gx-pulse {
+    0%   { box-shadow: 0 0 0 0 var(--gx-dot-glow); transform: scale(1); }
+    50%  { box-shadow: 0 0 0 8px rgba(0, 191, 165, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 191, 165, 0); transform: scale(1); }
+  }
+
+  /* Texto + Transiciones */
+  #gx-live-viewers .gx-text {
+    display: inline-flex;
+    gap: 5px;
+    align-items: baseline;
+    transition: opacity var(--gx-fade) ease, transform var(--gx-fade) ease;
+  }
+  
+  /* Ciudad con Gradiente de Marca */
+  #gx-live-viewers .gx-city {
+    background: var(--gx-brand-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 800;
+  }
+
+  #gx-live-viewers .gx-count {
+    font-weight: 700;
+    color: #1B5E20; /* Verde oscuro para el número */
+  }
+
+  /* Estado: Cambiando (Fade out/in) */
+  #gx-live-viewers.fading .gx-text {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  #gx-live-viewers:not(.fading) .gx-text {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #gx-live-viewers .gx-dot { animation: none; }
+    #gx-live-viewers.fading .gx-text, #gx-live-viewers .gx-text { transition: none; }
+  }
+</style>
+
+<script>
+(() => {
+  const root = document.getElementById('gx-live-viewers');
+  if(!root) return;
+
+  // ---------- Config ----------
+  const INTERVAL = parseInt(root.dataset.interval || '4000', 10);
+  const MAX_COUNT = Math.min(8, Math.max(1, parseInt(root.dataset.maxCount || '6', 10)));
+  const WEIGHTED = (root.dataset.weighted || 'true') === 'true';
+
+  // Ciudades (Mix de ciudades principales de México)
+  const CITIES = [
+    'Guadalajara','CDMX','Monterrey','Puebla','Querétaro',
+    'Mérida','Cancún','León','Tijuana','Veracruz'
+  ];
+
+  // Algoritmo de peso (favorece números bajos para realismo)
+  const weightedCounts = (() => {
+    const arr = [];
+    for(let n=1; n<=MAX_COUNT; n++){
+      // Los números 2, 3 y 4 salen más veces
+      const weight = (n >= 2 && n <= 4) ? 5 : 1; 
+      for(let k=0; k<weight; k++) arr.push(n);
+    }
+    return arr;
+  })();
+
+  const randFrom = (arr) => arr[Math.floor(Math.random()*arr.length)];
+  
+  // Evita repetir la misma ciudad consecutivamente
+  const nextCity = ((last) => () => {
+    let c; let tries=0;
+    do { c = randFrom(CITIES); tries++; } while(c === last.value && tries < 6);
+    last.value = c; return c;
+  })({value:null});
+
+  const nextCount = () => WEIGHTED ? randFrom(weightedCounts) : (1 + Math.floor(Math.random()*MAX_COUNT));
+
+  // Referencias DOM (actualizadas a clases gx-)
+  const countEl = root.querySelector('.gx-count');
+  const cityEl  = root.querySelector('.gx-city');
+  const peopleEl= root.querySelector('.gx-people');
+
+  const setPeopleWord = (n) => { peopleEl.textContent = (n === 1) ? 'persona' : 'personas'; };
+
+  // Intersection Observer (Solo anima si es visible)
+  let running = false, timer = null;
+  const io = new IntersectionObserver((entries) => {
+    const seen = entries.some(e => e.isIntersecting);
+    if(seen && !running) start();
+    if(!seen && running) stop();
+  }, {threshold: 0.1});
+  io.observe(root);
+
+  function update(){
+    root.classList.add('fading');
+    setTimeout(() => {
+      const n = nextCount();
+      const c = nextCity();
+      countEl.textContent = n;
+      setPeopleWord(n);
+      cityEl.textContent = c;
+      root.classList.remove('fading');
+    }, 420); // Sincronizado con CSS --gx-fade
+  }
+
+  function start(){
+    running = true;
+    update(); // Primer update inmediato
+    timer = setInterval(update, INTERVAL);
+  }
+  function stop(){
+    running = false;
+    clearInterval(timer);
+    timer = null;
+  }
+  
+  // Fallback de arranque
+  setTimeout(() => { if(!running) start(); }, 500);
+})();
+</script>
