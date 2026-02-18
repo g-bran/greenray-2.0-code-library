@@ -1,0 +1,28 @@
+{
+  "BLOCK_ID": "gx-live-viewers",
+  "SIZE": "md",
+  "INTERVAL_MS": 4000,
+  "VARIANT": "inline",
+  "MAX_COUNT": 6,
+  "WEIGHTED": "true",
+
+  "DEFAULT_COUNT": 3,
+  "DEFAULT_PEOPLE_WORD": "personas",
+  "TEXT_SEEING_FROM": "viendo desde",
+  "DEFAULT_CITY": "Guadalajara",
+  "SINGULAR_WORD": "persona",
+  "PLURAL_WORD": "personas",
+
+  "FADE_MS": 420,
+  "GAP_PX": 10,
+
+  "COLOR_TEXT_MAIN": "#1F2937",
+  "COLOR_DOT": "#00BFA5",
+  "COLOR_DOT_GLOW": "rgba(0, 191, 165, 0.45)",
+  "GRAD_START": "#1B5E20",
+  "GRAD_END": "#00BFA5",
+  "COLOR_COUNT": "#1B5E20",
+
+  "FONT_FAMILY": "var(--font-body-family), system-ui, -apple-system, sans-serif",
+  "CITIES_JSON": ["Guadalajara", "CDMX", "Monterrey", "Puebla", "Querétaro", "Mérida", "Cancún", "León", "Tijuana", "Veracruz"]
+}
